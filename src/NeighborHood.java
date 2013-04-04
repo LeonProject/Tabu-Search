@@ -1,4 +1,5 @@
-import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.LinkedList;
 import java.util.List;
 
 import JaCoP.core.IntDomain;
@@ -11,75 +12,95 @@ import JaCoP.core.ValueEnumeration;
  *
  */
 public class NeighborHood {
-		private int[] solution;
-		private IntDomain[] domains;
-		private List<Move> moves;
+	private int[] solution;
+	private IntDomain[] domains;
+	private List<Move> moves;
+
+	/**
+	 * Constructor of NeighborHood
+	 * @param solution The solution from which a set of adjacent solutions can be reached
+	 * @param domain The domain of the current solution
+	 */
+	public NeighborHood(int[] solution, IntDomain[] domain){
+		this.solution = solution;
+		this.domains = domain;
+		this.moves = new LinkedList<Move>();
+	}
+
+	/**
+	 * Determine a new NeighborHood by adding moves
+	 */
+	public void determineNeighboor(){
 		
-		/**
-		 * Constructor
-		 * @param solution The solution from which a set of adjacent solutions can be reached
-		 * @param domain The domain of the current solution
-		 */
-		public NeighborHood(int[] solution, IntDomain[] domain){
-			this.solution = solution;
-			this.domains = domain;
-			this.moves = new ArrayList<Move>();
-		}
-		
-		/**
-		 * Determine a new NeighborHood 
-		 */
-		public void determineNeighboor(){
-				
-			for (int i=0; i<this.solution.length; i++){
-				ValueEnumeration values = this.domains[i].valueEnumeration();
-				
-				for (int j=0; j<this.domains[i].getSize();j++){
-					int valueElem = values.nextElement();
-					
-					//We keep only values which are different to the solution 
-					if(valueElem != this.solution[i]){
-						Move move = new Move(i, valueElem);
-						this.moves.add(move);
-					}
+		for (int i=0; i<this.solution.length; i++){
+			ValueEnumeration values = this.domains[i].valueEnumeration();
+			for (int j=0; j<this.domains[i].getSize();j++){
+				int valueElem = values.nextElement();
+
+				//We keep only values which are different to the solution 
+				if(valueElem != this.solution[i]){
+					Move move = new Move(i, valueElem);
+					this.moves.add(move);
 				}
 			}
 		}
-		
-		/**
-		 * This method allow to reduce the current neighborhood, deleting elements which are also contained in the TabuList
-		 * @param tabuList TabuList which contains wrong/forbidden moves
-		 */
-		public void reduceNeighborHood(TabuList tabuList){
-			for (Move move : this.moves){
-				if(tabuList.isTabuElem(move)){
-					System.out.println(this.moves.toString());
-					this.moves.remove(move);
-				}
+	}
+
+	/**
+	 * This method allow reducing the current neighborhood, removing elements which are also contained in our TabuList
+	 * @param tabuList TabuList which contains wrong/forbidden moves
+	 */
+	public void reduceNeighborHood(TabuList tabuList){
+		Iterator<Move> it = moves.iterator();
+
+		while(it.hasNext())
+		{
+			Move moveElem = it.next();
+			if(tabuList.isTabuElem(moveElem))
+			{
+				it.remove();
 			}
 		}
+	}
+
+	/**
+	 * This method returns a triple which contains the best neighborhood, the best cost and the best move found.
+	 * This solution will be used in the tabu search 
+	 * @return result A Result which contains the best neighborhood, the best cost and the best move found
+	 */
+	public BestCandidate getBestPossibleSolution(){
+		BestCandidate result = new BestCandidate();
+
+		int bestSolutionCostFound = Integer.MAX_VALUE;
+		int[] bestSolutionFound = null;
+		Move bestMoveFound = null;
+
+		for(Move m : moves){
+			int [] solutionFound = new int[solution.length];
+			System.arraycopy(solution, 0, solutionFound, 0, solution.length);
+
+			solutionFound[m.getVariable()] = m.getValue();
+			int currentCost = Tools.fitness(solutionFound);
+
+			if( currentCost < bestSolutionCostFound ){
+				bestSolutionFound = solutionFound;
+				bestSolutionCostFound = currentCost;
+				bestMoveFound = m;
+			}
+
+		}
+		result.setSolution(bestSolutionFound);
+		result.setCost(bestSolutionCostFound);
+		result.setMove(bestMoveFound);
 		
-		/* TODO : ALgo
-		 * 
-		 * Move BestMove = NULL;
-		 * int bestNeighborCost = Integer.MAX_VALUE;
-		 * int[] bestNeighborHood = null;
-		 * 
-		 * for(Move move : moves){
-		 * 		//int [] neighbor = new int[solution.length];
-	 	 *		
-		 *		//neighbor[variable] = value
-		 *		//Evaluer coût neighbor   int cost = neighbor.fitness();
-		 *		
-		 *		if(neighborCost < bestNeighborCost)
-		 *		{
-		 *			bestMove = move;
-		 *			bestNeighborCost = neighborCost;
-		 *			bestNeighbor = neighbor;
-		 *		}
-		 *		
-		 *		//Retourner meilleur voisinage, le meilleur déplacement et le meilleur coût
-		 *
-		 *			}
-		 */
+		//System.out.println(result.toString());
+
+		return result;
+	}
+
 }
+
+
+
+
+
